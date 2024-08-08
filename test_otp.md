@@ -1,18 +1,9 @@
-# otp test
+# OTP benchmark
 
 
-``` r
-library(sf)
-```
-
-    Linking to GEOS 3.11.2, GDAL 3.8.2, PROJ 9.3.1; sf_use_s2() is TRUE
-
-``` r
-library(osmextract)
-```
-
-    Data (c) OpenStreetMap contributors, ODbL 1.0. https://www.openstreetmap.org/copyright.
-    Check the package website, https://docs.ropensci.org/osmextract/, for more details.
+The following code is to test the performance of the OTP routing engine
+running locally controlled by the `opentripplanner` package with a
+sample of Origins and Destinations
 
 ``` r
 library(tidyverse)
@@ -24,45 +15,48 @@ library(tidyverse)
     ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
     ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
     ✔ purrr     1.0.2     
-
     ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
     ✖ dplyr::filter() masks stats::filter()
     ✖ dplyr::lag()    masks stats::lag()
     ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 
-``` r
-library(tmap)
-```
-
-    Breaking News: tmap 3.x is retiring. Please test v4, e.g. with
-    remotes::install_github('r-tmap/tmap')
-
-Reading the OD data
+We will read the OD data produced for this test
 
 ``` r
 od_geo = sf::read_sf("input_data/od_data_100_sf.geojson")
 ```
 
-Extracting Origins and Destinations
+Extracting Origins and Destinations with the `'lwgeom` package
 
 ``` r
-origins <- lwgeom::st_startpoint(od_geo) |> st_as_sf()
+origins <- lwgeom::st_startpoint(od_geo) |> sf::st_as_sf()
+```
+
+    Linking to GEOS 3.11.2, GDAL 3.8.2, PROJ 9.3.1; sf_use_s2() is TRUE
+
+``` r
 origins$O <- od_geo$O
 
 
-destinations <- lwgeom::st_endpoint(od_geo) |> st_as_sf()
+destinations <- lwgeom::st_endpoint(od_geo) |> sf::st_as_sf()
 destinations$D <- od_geo$D
 ```
 
 ### Setting up OTP
 
-Creating the folder structure
+The following codes will prepare the folders and files that are required
+for the OTP server to run
+
+#### Creating the folder structure
+
+We create a folder for the Leeds, which will be used as a router in the
+OTP functions
 
 ``` r
 dir.create("OTP/graphs/Leeds",recursive = T,showWarnings = F)
 ```
 
-Getting OSM data
+Using the `osmextract` package we can extract the OSM data
 
 ``` r
 leeds_osm <- osmextract::oe_get("Leeds",
@@ -87,32 +81,38 @@ leeds_osm <- osmextract::oe_get("Leeds",
     Bounding box:  xmin: -1.889999 ymin: 53.65 xmax: -1.280002 ymax: 53.88
     Geodetic CRS:  WGS 84
 
+Loading the `opentripplanner`
+
 ``` r
 library(opentripplanner)
-library(tmap)
 ```
+
+Specifying the paths
 
 ``` r
 path_data <- file.path("OTP")
-# dir.create(path_data)
-path_otp <- otp_dl_jar(path_data, cache = TRUE)
+path_otp <- otp_dl_jar(path_data,cache = T)
 ```
 
     Using cached version from C:/Users/ts18jpf/AppData/Local/R/win-library/4.4/opentripplanner/jar/otp-1.5.0-shaded.jar
 
-Creating the config file for the router
+Creating the config file for the router. For this purpose we are going
+to use the default values
 
 ``` r
 if(!file.exists("OTP/graphs/leeds/router-config.json")){
 router_config <- otp_make_config("router")
 otp_validate_config(router_config)
+# router_config$routingDefaults$triangleSafetyFactor ### For quietness optimisation
+# router_config$routingDefaults$$triangleTimeFactor ### For speed optimisation
 otp_write_config(router_config,                # Save the config file
                  dir = path_data,
                  router = "Leeds")  
 }
 ```
 
-Creating the graph
+We could also save some GTFS data at this poing, if needed. For this
+test we do not neet it, so we built the graph with the following code.
 
 ``` r
 if(!file.exists("OTP/graphs/leeds/Graph.obj")){
@@ -120,7 +120,7 @@ log1 <- otp_build_graph(otp = path_otp,router = "Leeds", dir = path_data,memory 
 }
 ```
 
-Initialising OTP
+We initialise the OTP server once the graph has been built
 
 ``` r
 log2 <- otp_setup(otp = path_otp, dir = path_data,router = "Leeds",memory = 15e3)
@@ -128,11 +128,11 @@ log2 <- otp_setup(otp = path_otp, dir = path_data,router = "Leeds",memory = 15e3
 
     You have the correct version of Java for OTP 1.x
 
-    2024-08-08 12:44:35.243263 OTP is loading and may take a while to be useable
+    2024-08-08 15:09:06.793926 OTP is loading and may take a while to be useable
 
     Router http://localhost:8080/otp/routers/Leeds exists
 
-    2024-08-08 12:45:05.84992 OTP is ready to use Go to localhost:8080 in your browser to view the OTP
+    2024-08-08 15:09:37.37493 OTP is ready to use Go to localhost:8080 in your browser to view the OTP
 
 ``` r
 otpcon <- otp_connect(timezone = "Europe/London",router = "Leeds")
@@ -140,27 +140,42 @@ otpcon <- otp_connect(timezone = "Europe/London",router = "Leeds")
 
     Router http://localhost:8080/otp/routers/Leeds exists
 
-Generating the routes and measuring the time
+Using the `otp_plan` function, we can generate the routes for the
+origins and destinations. We will use `system.time` to measure the time
+used for processing the routes
 
 ``` r
 system.time({
 routes2 <- otp_plan(otpcon = otpcon,
-         fromPlace = origins,toPlace = destinations,fromID = origins$O,toID = destinations$D,
-         mode = "BICYCLE")
+                    fromPlace = origins,
+                    toPlace = destinations,
+                    fromID = origins$O,
+                    toID = destinations$D,
+                    mode = "BICYCLE")
 })
 ```
 
-    2024-08-08 12:45:06.496605 sending 100 routes requests using 19 threads
+    2024-08-08 15:09:38.128524 sending 100 routes requests using 19 threads
 
     Done in 0 mins
 
-    2024-08-08 12:45:09.078369 processing results
+    2024-08-08 15:09:40.157726 processing results
 
-    6 routes returned errors. Unique error messages are:
+    8 routes returned errors. Unique error messages are:
 
     6x messages: "No trip found. There may be no transit service within the maximum specified distance or at the specified time, or your start or end point might not be safely accessible."
 
-    2024-08-08 12:45:09.345947 done
+    2x messages: "We're sorry. The trip planner is temporarily unavailable. Please try again later."
+
+    2024-08-08 15:09:40.77809 done
 
        user  system elapsed 
-       0.28    0.09    2.89 
+       0.09    0.00    2.78 
+
+A quick look at the result
+
+``` r
+plot(routes2[,"geometry"])
+```
+
+![](test_otp_files/figure-commonmark/unnamed-chunk-12-1.png)

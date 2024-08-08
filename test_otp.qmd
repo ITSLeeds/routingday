@@ -1,91 +1,106 @@
 ---
-title: "otp test"
+title: "OTP benchmark"
 format: gfm
 ---
 
+The following code is to test the performance of the OTP routing engine running locally controlled by the `opentripplanner` package with a sample of Origins and Destinations
+
 ```{r}
-library(sf)
-library(osmextract)
 library(tidyverse)
-library(tmap)
 ```
 
-Reading the OD data
+We will read the OD data produced for this test
 ```{r}
 od_geo = sf::read_sf("input_data/od_data_100_sf.geojson")
 ```
 
-Extracting Origins and Destinations
+Extracting Origins and Destinations with the `'lwgeom` package
 
 ```{r}
-origins <- lwgeom::st_startpoint(od_geo) |> st_as_sf()
+origins <- lwgeom::st_startpoint(od_geo) |> sf::st_as_sf()
 origins$O <- od_geo$O
 
 
-destinations <- lwgeom::st_endpoint(od_geo) |> st_as_sf()
+destinations <- lwgeom::st_endpoint(od_geo) |> sf::st_as_sf()
 destinations$D <- od_geo$D
-
 ```
 
 
 ### Setting up OTP
 
-Creating the folder structure
+The following codes will prepare the folders and files that are required for the OTP server to run
 
+#### Creating the folder structure
+
+We create a folder for the Leeds, which will be used as a router in the OTP functions
 ```{r}
 dir.create("OTP/graphs/Leeds",recursive = T,showWarnings = F)
 ```
 
-Getting OSM data
+Using the `osmextract` package we can extract the OSM data
 ```{r}
 leeds_osm <- osmextract::oe_get("Leeds",
                                 download_directory = "OTP/graphs/Leeds")
 ```
 
+Loading the `opentripplanner`
+
 ```{r}
 library(opentripplanner)
-library(tmap)
 ```
+
+Specifying the paths
 
 ```{r}
 path_data <- file.path("OTP")
-# dir.create(path_data)
-path_otp <- otp_dl_jar(path_data, cache = TRUE)
+path_otp <- otp_dl_jar(path_data,cache = T)
 ```
 
-Creating the config file for the router
+Creating the config file for the router. For this purpose we are going to use the default values
 ```{r}
 if(!file.exists("OTP/graphs/leeds/router-config.json")){
 router_config <- otp_make_config("router")
 otp_validate_config(router_config)
+# router_config$routingDefaults$triangleSafetyFactor ### For quietness optimisation
+# router_config$routingDefaults$$triangleTimeFactor ### For speed optimisation
 otp_write_config(router_config,                # Save the config file
                  dir = path_data,
                  router = "Leeds")  
 }
 ```
 
-Creating the graph
+We could also save some GTFS data at this poing, if needed. For this test we do not neet it, so 
+we built the graph with the following code.
+
 ```{r}
 if(!file.exists("OTP/graphs/leeds/Graph.obj")){
 log1 <- otp_build_graph(otp = path_otp,router = "Leeds", dir = path_data,memory = 15000)
 }
 ```
 
-Initialising OTP
+We initialise the OTP server once the graph has been built
 ```{r}
 log2 <- otp_setup(otp = path_otp, dir = path_data,router = "Leeds",memory = 15e3)
 otpcon <- otp_connect(timezone = "Europe/London",router = "Leeds")
 ```
 
-Generating the routes and measuring the time
+Using the `otp_plan` function, we can generate the routes for the origins and destinations. We will use `system.time` to measure the time used for processing the routes
 ```{r}
 system.time({
 routes2 <- otp_plan(otpcon = otpcon,
-         fromPlace = origins,toPlace = destinations,fromID = origins$O,toID = destinations$D,
-         mode = "BICYCLE")
+                    fromPlace = origins,
+                    toPlace = destinations,
+                    fromID = origins$O,
+                    toID = destinations$D,
+                    mode = "BICYCLE")
 })
 ```
 
+A quick look at the result
+
+```{r}
+plot(routes2[,"geometry"])
+```
 
 
 
