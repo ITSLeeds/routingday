@@ -25,7 +25,20 @@ remotely.
 - Benchmarking different engines in terms of ease of setup, with
   Valhalla, Graphhopper, OSRM, and
   [AequilibraE](https://www.outerloop.io/blog/20240729_route_choice/)
-  being options
+  and any other open source routing engine being options
+  - As a ballpark for performance levels of current code we’re getting
+    around:
+    - 1-5 routes per second for one-by-one API requests
+    - 30-100 routes per second for batch routing with CycleStreets
+    - ??? Can we go faster while retaining valuable route level info ???
+      See `od2net` for an example of fast network generation
+    - Can we keep summary stats on origin and destination groups? See
+      https://github.com/Urban-Analytics-Technology-Platform/od2net/issues/35
+- Obtaining segment-level data from route-level data, overcoming an
+  issue with the NPT workflow in which duplicate segments are
+  represented multiple times (if that makes sense…)
+  - That could involve spatial joins, e.g. with
+    https://github.com/nptscot/rnetmatch or other packages
 - Ease of customising routing weights
 - Network pre-processing, with reference to existing documentation,
   e.g. from
@@ -43,6 +56,12 @@ You can put code whereever you like but please do share reproducible
 examples with a link to your code and by putting the code here directly
 with pull requests to this repository. We will share input datasets in
 the Releases of this repository.
+
+**Please create issues describing ideas before putting in PRs.**
+
+See specific guidance on opening issues and associated Pull Requests
+here:
+https://github.com/ITSLeeds/routingday/blob/main/test_osmnx_rl.md#how-to-contribute-to-the-repo
 
 ## Getting started
 
@@ -211,14 +230,19 @@ can call from R as follows:
 
 ``` r
 library(stplanr)
+system.time({
 routes_2 = route(
     l = od_geo,
     route_fun = route_osrm,
     osrm.profile = "foot"
 )
+})
 ```
 
     Most common output is sf
+
+       user  system elapsed 
+     11.446   0.210  37.915 
 
 ``` r
 nrow(routes_2)
@@ -238,6 +262,11 @@ plot(routes_2)
 ```
 
 ![](README_files/figure-commonmark/unnamed-chunk-8-3.png)
+
+As the timing exercise shows, it took almost a minute to generate 100
+routes.
+
+**Challenge: get under 1 second**
 
 A common requirement is to set routing profiles for different transport
 modes and users. For cycle network planning, for example, your users may
@@ -294,3 +323,24 @@ routes_quietest |>
 #   tm_shape() +
 #   tm_lines("all")
 ```
+
+### Batch routing
+
+You can use the function `cyclestreets::batch()` for batch routing that
+gives around a 10x speed-up.
+
+# Routing using a local copy of OSM
+
+…
+
+## Notes
+
+See the qmd for the source code that generated README.md: to check you
+have R and Python installed you can try to reproduce it with:
+
+``` bash
+quarto render README.qmd
+```
+
+See the source code for scripts to convert the .qmd file to .R and .py
+files.
