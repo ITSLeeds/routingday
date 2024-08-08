@@ -1,18 +1,12 @@
----
-format: gfm
----
 
-The starting point is the following [example](https://github.com/AequilibraE/aequilibrae/blob/develop/docs/source/examples/assignment_workflows/plot_route_choice.py) from the Aequillibrae documentation:
 
-```{r}
-#| include: false
-ls()
-```
+The starting point is the following
+[example](https://github.com/AequilibraE/aequilibrae/blob/develop/docs/source/examples/assignment_workflows/plot_route_choice.py)
+from the Aequillibrae documentation:
 
 <details>
 
-```{python}
-#| eval: false
+``` python
 # Imports
 from uuid import uuid4
 from tempfile import gettempdir
@@ -20,8 +14,7 @@ from os.path import join
 from aequilibrae.utils.create_example import create_example
 ```
 
-```{python}
-#| eval: false
+``` python
 # sphinx_gallery_thumbnail_path = 'images/plot_route_choice_assignment.png'
 
 # %%
