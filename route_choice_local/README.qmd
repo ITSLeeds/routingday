@@ -1,8 +1,8 @@
 ---
-format: gfm
+format: html
 ---
 
-The starting point is the following [example](https://github.com/AequilibraE/aequilibrae/blob/develop/docs/source/examples/assignment_workflows/plot_route_choice.py) from the Aequillibrae documentation:
+The starting point is the following [example](https://github.com/AequilibraE/aequilibrae/blob/develop/docs/source/examples/assignment_workflows/plot_route_choice.py) (rendered on their [website](https://aequilibrae.com/python/latest/_auto_examples/assignment_workflows/plot_route_choice_set.html#sphx-glr-auto-examples-assignment-workflows-plot-route-choice-set-py)) from the Aequillibrae documentation:
 
 ```{r}
 #| include: false
@@ -12,7 +12,6 @@ ls()
 <details>
 
 ```{python}
-#| eval: false
 # Imports
 from uuid import uuid4
 from tempfile import gettempdir
@@ -21,7 +20,6 @@ from aequilibrae.utils.create_example import create_example
 ```
 
 ```{python}
-#| eval: false
 # sphinx_gallery_thumbnail_path = 'images/plot_route_choice_assignment.png'
 
 # %%
@@ -228,7 +226,10 @@ res.head()
 # %%
 # Since we provided a matrix initially we can also perform link loading based on our assignment results.
 rc.get_load_results()
+```
 
+
+```{python}
 # %% we can plot these as well
 plot_results(rc.get_load_results())
 
