@@ -1,0 +1,92 @@
+---
+title: "otp test"
+format: gfm
+---
+
+```{r}
+library(sf)
+library(osmextract)
+library(tidyverse)
+library(tmap)
+```
+
+Reading the OD data
+```{r}
+od_geo = sf::read_sf("input_data/od_data_100_sf.geojson")
+```
+
+Extracting Origins and Destinations
+
+```{r}
+origins <- lwgeom::st_startpoint(od_geo) |> st_as_sf()
+origins$O <- od_geo$O
+
+
+destinations <- lwgeom::st_endpoint(od_geo) |> st_as_sf()
+destinations$D <- od_geo$D
+
+```
+
+
+### Setting up OTP
+
+Creating the folder structure
+
+```{r}
+dir.create("OTP/graphs/Leeds",recursive = T,showWarnings = F)
+```
+
+Getting OSM data
+```{r}
+leeds_osm <- osmextract::oe_get("Leeds",
+                                download_directory = "OTP/graphs/Leeds")
+```
+
+```{r}
+library(opentripplanner)
+library(tmap)
+```
+
+```{r}
+path_data <- file.path("OTP")
+# dir.create(path_data)
+path_otp <- otp_dl_jar(path_data, cache = TRUE)
+```
+
+Creating the config file for the router
+```{r}
+if(!file.exists("OTP/graphs/leeds/router-config.json")){
+router_config <- otp_make_config("router")
+otp_validate_config(router_config)
+otp_write_config(router_config,                # Save the config file
+                 dir = path_data,
+                 router = "Leeds")  
+}
+```
+
+Creating the graph
+```{r}
+if(!file.exists("OTP/graphs/leeds/Graph.obj")){
+log1 <- otp_build_graph(otp = path_otp,router = "Leeds", dir = path_data,memory = 15000)
+}
+```
+
+Initialising OTP
+```{r}
+log2 <- otp_setup(otp = path_otp, dir = path_data,router = "Leeds",memory = 15e3)
+otpcon <- otp_connect(timezone = "Europe/London",router = "Leeds")
+```
+
+Generating the routes and measuring the time
+```{r}
+system.time({
+routes2 <- otp_plan(otpcon = otpcon,
+         fromPlace = origins,toPlace = destinations,fromID = origins$O,toID = destinations$D,
+         mode = "BICYCLE")
+})
+```
+
+
+
+
+
