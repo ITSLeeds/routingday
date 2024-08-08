@@ -1,24 +1,29 @@
 # OTP benchmark
 
 
+``` r
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+if (!require("remotes")) install.packages("remotes")
+pkgs = c(
+    "sf",
+    "tidyverse",
+    "osmextract",
+    "lwgeom",
+    "opentripplanner"
+)
+remotes::install_cran(pkgs)
+sapply(pkgs, require, character.only = TRUE)
+```
+
+    Warning in fun(libname, pkgname): PROJ versions differ: lwgeom has 9.3.0 sf has
+    9.3.1
+
+                 sf       tidyverse      osmextract          lwgeom opentripplanner 
+               TRUE            TRUE            TRUE            TRUE            TRUE 
+
 The following code is to test the performance of the OTP routing engine
 running locally controlled by the `opentripplanner` package with a
 sample of Origins and Destinations
-
-``` r
-library(tidyverse)
-```
-
-    ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
-    ✔ dplyr     1.1.4     ✔ readr     2.1.5
-    ✔ forcats   1.0.0     ✔ stringr   1.5.1
-    ✔ ggplot2   3.5.1     ✔ tibble    3.2.1
-    ✔ lubridate 1.9.3     ✔ tidyr     1.3.1
-    ✔ purrr     1.0.2     
-    ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
-    ✖ dplyr::filter() masks stats::filter()
-    ✖ dplyr::lag()    masks stats::lag()
-    ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 
 We will read the OD data produced for this test
 
@@ -30,11 +35,6 @@ Extracting Origins and Destinations with the `'lwgeom` package
 
 ``` r
 origins <- lwgeom::st_startpoint(od_geo) |> sf::st_as_sf()
-```
-
-    Linking to GEOS 3.11.2, GDAL 3.8.2, PROJ 9.3.1; sf_use_s2() is TRUE
-
-``` r
 origins$O <- od_geo$O
 
 
@@ -81,12 +81,6 @@ leeds_osm <- osmextract::oe_get("Leeds",
     Bounding box:  xmin: -1.889999 ymin: 53.65 xmax: -1.280002 ymax: 53.88
     Geodetic CRS:  WGS 84
 
-Loading the `opentripplanner`
-
-``` r
-library(opentripplanner)
-```
-
 Specifying the paths
 
 ``` r
@@ -128,11 +122,11 @@ log2 <- otp_setup(otp = path_otp, dir = path_data,router = "Leeds",memory = 15e3
 
     You have the correct version of Java for OTP 1.x
 
-    2024-08-08 15:09:06.793926 OTP is loading and may take a while to be useable
+    2024-08-08 15:36:13.910733 OTP is loading and may take a while to be useable
 
     Router http://localhost:8080/otp/routers/Leeds exists
 
-    2024-08-08 15:09:37.37493 OTP is ready to use Go to localhost:8080 in your browser to view the OTP
+    2024-08-08 15:36:44.309603 OTP is ready to use Go to localhost:8080 in your browser to view the OTP
 
 ``` r
 otpcon <- otp_connect(timezone = "Europe/London",router = "Leeds")
@@ -155,22 +149,22 @@ routes2 <- otp_plan(otpcon = otpcon,
 })
 ```
 
-    2024-08-08 15:09:38.128524 sending 100 routes requests using 19 threads
+    2024-08-08 15:36:44.979341 sending 100 routes requests using 19 threads
 
     Done in 0 mins
 
-    2024-08-08 15:09:40.157726 processing results
+    2024-08-08 15:36:46.783542 processing results
 
-    8 routes returned errors. Unique error messages are:
+    6 routes returned errors. Unique error messages are:
 
-    6x messages: "No trip found. There may be no transit service within the maximum specified distance or at the specified time, or your start or end point might not be safely accessible."
+    5x messages: "No trip found. There may be no transit service within the maximum specified distance or at the specified time, or your start or end point might not be safely accessible."
 
-    2x messages: "We're sorry. The trip planner is temporarily unavailable. Please try again later."
+    1x messages: "We're sorry. The trip planner is temporarily unavailable. Please try again later."
 
-    2024-08-08 15:09:40.77809 done
+    2024-08-08 15:36:46.945192 done
 
        user  system elapsed 
-       0.09    0.00    2.78 
+       0.09    0.11    2.02 
 
 A quick look at the result
 
@@ -178,4 +172,4 @@ A quick look at the result
 plot(routes2[,"geometry"])
 ```
 
-![](test_otp_files/figure-commonmark/unnamed-chunk-12-1.png)
+![](test_otp_files/figure-commonmark/plot-routes-1.png)
