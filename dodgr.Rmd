@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load Inputs
 
 ```{r inputs, include=FALSE}
+# install dev version of dodgr:
+remotes::install_dev("dodgr")
 library(dodgr)
 library(osmdata)
 library(dplyr)
