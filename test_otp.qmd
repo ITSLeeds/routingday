@@ -64,17 +64,17 @@ The following codes will prepare the folders and files that are required for the
 
 #### Creating the folder structure
 
-We create a folder for the Leeds, which will be used as a router in the OTP functions
+We create a folder for the leeds, which will be used as a router in the OTP functions
 ```{r}
 #| label: dir-create
-dir.create("OTP/graphs/Leeds",recursive = T,showWarnings = F)
+dir.create("OTP/graphs/leeds",recursive = T,showWarnings = F)
 ```
 
 Using the `osmextract` package we can extract the OSM data
 ```{r}
 #| label: osm-get
-leeds_osm <- osmextract::oe_get("Leeds",
-                                download_directory = "OTP/graphs/Leeds")
+leeds_osm <- osmextract::oe_get("leeds",
+                                download_directory = "OTP/graphs/leeds")
 ```
 
 Specifying the paths
@@ -95,7 +95,7 @@ otp_validate_config(router_config)
 # router_config$routingDefaults$$triangleTimeFactor ### For speed optimisation
 otp_write_config(router_config,                # Save the config file
                  dir = path_data,
-                 router = "Leeds")  
+                 router = "leeds")  
 }
 ```
 
@@ -105,25 +105,25 @@ we built the graph with the following code.
 ```{r}
 #| label: graph-prep
 if(!file.exists("OTP/graphs/leeds/Graph.obj")){
-log1 <- otp_build_graph(otp = path_otp,router = "Leeds", dir = path_data,memory = 15000)
+log1 <- otp_build_graph(otp = path_otp,router = "leeds", dir = path_data,memory = 15000)
 }
 ```
 
 We initialise the OTP server once the graph has been built
 ```{r}
 #| label: init-server
-#| eval: false
-log2 <- otp_setup(otp = path_otp, dir = path_data,router = "Leeds",memory = 15e3)
+#| eval: true
+log2 <- otp_setup(otp = path_otp, dir = path_data,router = "leeds",memory = 15e3)
 ```
 
 Connect to the server as follows:
 
 ```{r}
-otpcon <- otp_connect(timezone = "Europe/London", router = "Leeds")
+otpcon <- otp_connect(timezone = "Europe/London", router = "leeds")
 
 ```
 
-Check the OTP server is running by navigating to `http://localhost:8080/otp/` in your browser
+Check the OTP server is running by navigating to `http://localhost:8080/` in your browser
 
 Using the `otp_plan` function, we can generate the routes for the origins and destinations. We will use `system.time` to measure the time used for processing the routes
 ```{r}
