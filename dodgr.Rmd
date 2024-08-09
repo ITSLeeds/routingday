@@ -17,17 +17,17 @@ library(osmdata)
 library(dplyr)
 library(sf)
 library(tmap)
-od_geo = sf::read_sf("input_data/od_data_100_sf.geojson")
+od_geo <- sf::read_sf("input_data/od_data_100_sf.geojson")
 
-leeds_osm <- opq ("Leeds, UK") %>%
-    add_osm_feature (key = "highway") %>%
-    osmdata_sc ()
+leeds_osm <- opq("Leeds, UK") %>%
+  add_osm_feature(key = "highway") %>%
+  osmdata_sc()
 ```
 
 # Build graph
 
 ```{r nework, include=FALSE}
-graph = weight_streetnet(leeds_osm, "bicycle", turn_penalty = TRUE, left_side = TRUE)
+graph <- weight_streetnet(leeds_osm, "bicycle", turn_penalty = TRUE, left_side = TRUE)
 ```
 # Get Routes
 
@@ -45,46 +45,46 @@ destinations <- st_coordinates(destinations)
 Routing
 
 ```{r}
-paths = dodgr_paths(graph, origins, destinations, pairwise = TRUE)
+time_dodgr1 <- system.time({
+  paths <- dodgr_paths(graph, origins, destinations, pairwise = TRUE)
+})
+time_dodgr1
+time_dodgr1[3]
 ```
-
- user  system elapsed 
-  27.16    0.35   26.91 
 
 Helper function from UK2GTFS
 ```{r}
 path_to_sf <- function(dp, verts, simplify = FALSE) {
-    # Check for emplyr paths
-    if (length(dp[[1]]) > 0) {
-      path <- verts[match(dp[[1]], verts$id), ]
-      path <- matrix(c(path$x, path$y), ncol = 2)
-      path <- sf::st_linestring(path)
+  # Check for emplyr paths
+  if (length(dp[[1]]) > 0) {
+    path <- verts[match(dp[[1]], verts$id), ]
+    path <- matrix(c(path$x, path$y), ncol = 2)
+    path <- sf::st_linestring(path)
 
-      if (simplify) {
-        path <- sf::st_as_sfc(list(path), crs = 4326)
-        path <- sf::st_transform(path, 27700)
-        path <- sf::st_simplify(path, 5, preserveTopology = TRUE)
-        path <- sf::st_transform(path, 4326)
-        path <- path[[1]]
-      }
-      return(path)
-    } else {
-      return(NA)
+    if (simplify) {
+      path <- sf::st_as_sfc(list(path), crs = 4326)
+      path <- sf::st_transform(path, 27700)
+      path <- sf::st_simplify(path, 5, preserveTopology = TRUE)
+      path <- sf::st_transform(path, 4326)
+      path <- path[[1]]
     }
+    return(path)
+  } else {
+    return(NA)
+  }
 }
 
-paths_to_sf <- function(paths, verts){
+paths_to_sf <- function(paths, verts) {
   dp.list <- purrr::map(paths, path_to_sf, verts = verts, .progress = TRUE)
   dp.list <- unname(dp.list)
   dp.list
 }
-
 ```
 
 ```{r}
-verts = dodgr_vertices(graph)
-paths2 = paths_to_sf(paths, verts)
-paths2 = sf::st_as_sfc(paths2, crs = 4326)
+verts <- dodgr_vertices(graph)
+paths2 <- paths_to_sf(paths, verts)
+paths2 <- sf::st_as_sfc(paths2, crs = 4326)
 ```
 
 Plot
@@ -93,3 +93,19 @@ Plot
 plot(paths2)
 ```
 
+# Save times
+
+```{r}
+timing_dodgr = data.frame(
+  approach = "dodgr-no-contraction",
+  version = as.character(packageVersion("dodgr")),
+  date = Sys.Date(),
+  time = round(time_dodgr1[3], 1)
+)
+# Save csv and append:
+timings = readr::read_csv("timings.csv")
+# Combine and deduplicate:
+timings = bind_rows(timings, timing_dodgr) |>
+  distinct(approach, version, date)
+readr::write_csv(timings, "timings.csv")
+```
