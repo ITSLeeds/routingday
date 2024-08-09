@@ -98,7 +98,8 @@ plot(paths2)
 # On contracted graph
 
 ```{r}
-o <- match_pts_to_verts(dodgr_vertices(graph), origins, connected = TRUE)
+v <- dodgr_vertices(graph)
+o <- v$id[match_pts_to_verts(v, origins, connected = TRUE)]
 d <- match_pts_to_verts(dodgr_vertices(graph), destinations, connected = TRUE)
 system.time({
   graphc <- dodgr_contract_graph(graph, verts=c(o, d))
