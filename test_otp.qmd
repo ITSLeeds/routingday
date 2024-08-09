@@ -19,6 +19,24 @@ remotes::install_cran(pkgs)
 sapply(pkgs, require, character.only = TRUE)
 ```
 
+We'll set the Java version to 17 (the recommended version is 17 according to [opentripplanner docs](https://docs.ropensci.org/opentripplanner/articles/OTPv2.html)) for the folder with [rJavaEnv](http://www.ekotov.pro/rJavaEnv/) as follows:
+
+```{r}
+#| label: Set Java version
+if (!requireNamespace("remotes", quietly = TRUE)) {
+  install.packages("remotes")
+}
+
+remotes::install_github("e-kotov/rJavaEnv")
+rJavaEnv::java_quick_install(version = 17)
+```
+
+Check you have the correct Java version:
+
+```{r}
+otp_check_java(2)
+```
+
 The following code is to test the performance of the OTP routing engine running locally controlled by the `opentripplanner` package with a sample of Origins and Destinations
 
 We will read the OD data produced for this test
@@ -64,7 +82,7 @@ Specifying the paths
 ```{r}
 #| label: dir-paths
 path_data <- file.path("OTP")
-path_otp <- otp_dl_jar(path_data,cache = T)
+path_otp <- otp_dl_jar(path_data, cache = T, version = "2.2.0")
 ```
 
 Creating the config file for the router. For this purpose we are going to use the default values
@@ -94,9 +112,18 @@ log1 <- otp_build_graph(otp = path_otp,router = "Leeds", dir = path_data,memory 
 We initialise the OTP server once the graph has been built
 ```{r}
 #| label: init-server
+#| eval: false
 log2 <- otp_setup(otp = path_otp, dir = path_data,router = "Leeds",memory = 15e3)
-otpcon <- otp_connect(timezone = "Europe/London",router = "Leeds")
 ```
+
+Connect to the server as follows:
+
+```{r}
+otpcon <- otp_connect(timezone = "Europe/London", router = "Leeds")
+
+```
+
+Check the OTP server is running by navigating to `http://localhost:8080/otp/` in your browser
 
 Using the `otp_plan` function, we can generate the routes for the origins and destinations. We will use `system.time` to measure the time used for processing the routes
 ```{r}
