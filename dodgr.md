@@ -30,14 +30,14 @@ time_dodgr1
 ```
 
     ##    user  system elapsed 
-    ##  68.991   1.161  68.719
+    ## 113.758   1.882 113.438
 
 ``` r
 time_dodgr1[3]
 ```
 
     ## elapsed 
-    ##  68.719
+    ## 113.438
 
 Helper function from UK2GTFS
 
@@ -83,6 +83,26 @@ plot(paths2)
 
 ![](dodgr_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
+# On contracted graph
+
+``` r
+v <- dodgr_vertices(graph)
+o <- v$id[match_pts_to_verts(v, origins, connected = TRUE)]
+d <- v$id[match_pts_to_verts(v, destinations, connected = TRUE)]
+system.time({
+  graphc <- dodgr_contract_graph(graph, verts=c(o, d))
+})
+```
+
+    ##    user  system elapsed 
+    ##  70.439   0.661  75.026
+
+``` r
+time_dodgr2 <- system.time({
+  paths <- dodgr_paths(graphc, o, d, pairwise = TRUE)
+})
+```
+
 # Save times
 
 ``` r
@@ -92,15 +112,21 @@ timing_dodgr = data.frame(
   date = Sys.Date(),
   time = round(time_dodgr1[3], 1)
 )
+# For second dodgr call:
+timing_dodgr = rbind(timing_dodgr, data.frame(
+  approach = "dodgr-contraction",
+  version = as.character(packageVersion("dodgr")),
+  date = Sys.Date(),
+  time = round(time_dodgr2[3], 1)
+))
 # Save csv and append:
 timings = readr::read_csv("timings.csv")
 ```
 
-    ## Rows: 1 Columns: 4
+    ## Rows: 2 Columns: 3
     ## ── Column specification ────────────────────────────────────────────────────────
     ## Delimiter: ","
-    ## chr  (2): approach, dodgr_version
-    ## dbl  (1): time
+    ## chr  (2): approach, version
     ## date (1): date
     ## 
     ## ℹ Use `spec()` to retrieve the full column specification for this data.

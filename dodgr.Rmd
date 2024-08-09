@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Load Inputs
 
 ```{r inputs, include=FALSE}
+# install dev version of dodgr:
+remotes::install_dev("dodgr")
 library(dodgr)
 library(osmdata)
 library(dplyr)
@@ -93,6 +95,20 @@ Plot
 plot(paths2)
 ```
 
+# On contracted graph
+
+```{r}
+v <- dodgr_vertices(graph)
+o <- v$id[match_pts_to_verts(v, origins, connected = TRUE)]
+d <- v$id[match_pts_to_verts(v, destinations, connected = TRUE)]
+system.time({
+  graphc <- dodgr_contract_graph(graph, verts=c(o, d))
+})
+time_dodgr2 <- system.time({
+  paths <- dodgr_paths(graphc, o, d, pairwise = TRUE)
+})
+```
+
 # Save times
 
 ```{r}
@@ -102,6 +118,13 @@ timing_dodgr = data.frame(
   date = Sys.Date(),
   time = round(time_dodgr1[3], 1)
 )
+# For second dodgr call:
+timing_dodgr = rbind(timing_dodgr, data.frame(
+  approach = "dodgr-contraction",
+  version = as.character(packageVersion("dodgr")),
+  date = Sys.Date(),
+  time = round(time_dodgr2[3], 1)
+))
 # Save csv and append:
 timings = readr::read_csv("timings.csv")
 # Combine and deduplicate:
