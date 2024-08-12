@@ -63,6 +63,9 @@ With the instance active we go to R and specify the local host on
 So, we set the local host.
 
 ``` r
+# Set environment variable to avoid fork safety issues on macOS
+Sys.setenv(OBJC_DISABLE_INITIALIZE_FORK_SAFETY = "YES")
+
 library(osrm)
 ```
 
@@ -90,7 +93,7 @@ od_geo <- sf::st_read("input_data/od_data_100_sf.geojson")
 ```
 
     Reading layer `od_data_100_sf' from data source 
-      `/Users/rafa/Library/CloudStorage/OneDrive-UniversityofGlasgow/Research projects/routingday/input_data/od_data_100_sf.geojson' 
+      `/Users/rafa/Desktop/routingday/input_data/od_data_100_sf.geojson' 
       using driver `GeoJSON'
     Simple feature collection with 100 features and 3 fields
     Geometry type: LINESTRING
@@ -112,17 +115,16 @@ destinations <- sf::st_coordinates(destinations)
 ## Routing from local OSRM server
 
 Now, to keep the SF geometries together with the distance and duration
-estimates, I run one-to-one OD pair in parallel. I am not sure if this
-is the best way to do it. Given that OSRM has some multiprocessing
-capabilities internally, but so far, I am not sure how to implement it
-from `R` while preserving all the information.
+estimates, I run one-to-one OD pair (parallel is causing troube in MD
+environment). I am not sure if this is the best way to do it. Given that
+OSRM has some multiprocessing capabilities internally, but so far, I am
+not sure how to implement it from `R` while preserving all the
+information.
 
 ``` r
-library(parallel)
-
-# Run OD routes in parallel
+# Run OD routes
 system.time({
-  osrm_routes <- mclapply(1:nrow(origins), function(i) {
+  osrm_routes <- lapply(1:nrow(origins), function(i) {
     route <- osrm::osrmRoute(
       src = origins[i,], 
       dst = destinations[i,], 
@@ -130,24 +132,23 @@ system.time({
       osrm.profile = 'bicycle'
     )
     return(route)
-  }, mc.cores = 10)
-  # bind rows
-  osrm_routes <- dplyr::bind_rows(osrm_routes)
+  })
 })
 ```
 
-    Warning in mclapply(1:nrow(origins), function(i) {: scheduled cores 1, 2, 3, 4,
-    5, 6, 7, 8, 9, 10 did not deliver results, all values of the jobs will be
-    affected
-
        user  system elapsed 
-      0.166   0.161   0.201 
-
-So, this takes about 1 sec, including binding the separate outputs.
-
-And finally, the output looks like this.
+      0.215   0.009   1.116 
 
 ``` r
-# Plot routes
-# plot(osrm_routes[,3])
+# bind rows
+  osrm_routes <- dplyr::bind_rows(osrm_routes)
 ```
+
+This takes about 1.4 in the quarto environment. However, in a parallel
+processing is reduced to about 1 sec.
+
+``` r
+plot(osrm_routes[,3])
+```
+
+![](osrm_firstgo_files/figure-commonmark/unnamed-chunk-5-1.png)
