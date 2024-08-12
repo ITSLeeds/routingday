@@ -59,6 +59,9 @@ With the instance active we go to R and specify the local host on `osrm`.
 So, we set the local host. 
 
 ```{r}
+# Set environment variable to avoid fork safety issues on macOS
+Sys.setenv(OBJC_DISABLE_INITIALIZE_FORK_SAFETY = "YES")
+
 library(osrm)
 library(sf)
 
@@ -86,14 +89,12 @@ destinations <- sf::st_coordinates(destinations)
 
 ## Routing from local OSRM server
 
-Now, to keep the SF geometries together with the distance and duration estimates, I run one-to-one OD pair in parallel. I am not sure if this is the best way to do it. Given that OSRM has some multiprocessing capabilities internally, but so far, I am not sure how to implement it from `R` while preserving all the information.
+Now, to keep the SF geometries together with the distance and duration estimates, I run one-to-one OD pair (parallel is causing troube in MD environment). I am not sure if this is the best way to do it. Given that OSRM has some multiprocessing capabilities internally, but so far, I am not sure how to implement it from `R` while preserving all the information.
 
 ```{r}
-library(parallel)
-
-# Run OD routes in parallel
+# Run OD routes
 system.time({
-  osrm_routes <- mclapply(1:nrow(origins), function(i) {
+  osrm_routes <- lapply(1:nrow(origins), function(i) {
     route <- osrm::osrmRoute(
       src = origins[i,], 
       dst = destinations[i,], 
@@ -101,12 +102,17 @@ system.time({
       osrm.profile = 'bicycle'
     )
     return(route)
-  }, mc.cores = 10)
-  # bind rows
-  osrm_routes <- dplyr::bind_rows(osrm_routes)
+  })
 })
+
+# bind rows
+  osrm_routes <- dplyr::bind_rows(osrm_routes)
 
 ```
 
-This takes about 1 sec, including binding the separate outputs (Currently not running in the MD environment!).
+This takes about 1.1 in the quarto environment, and the results look like this:
+
+```{r}
+plot(osrm_routes[,3])
+```
 
