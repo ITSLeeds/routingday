@@ -112,23 +112,26 @@ time_dodgr2 <- system.time({
 # Save times
 
 ```{r}
-timing_dodgr = data.frame(
+timings1 = data.frame(
   approach = "dodgr-no-contraction",
   version = as.character(packageVersion("dodgr")),
   date = Sys.Date(),
   time = round(time_dodgr1[3], 1)
 )
 # For second dodgr call:
-timing_dodgr = rbind(timing_dodgr, data.frame(
+timings2 = data.frame(
   approach = "dodgr-contraction",
   version = as.character(packageVersion("dodgr")),
   date = Sys.Date(),
   time = round(time_dodgr2[3], 1)
-))
+)
+timings = bind_rows(timings1, timings2)
 # Save csv and append:
-timings = readr::read_csv("timings.csv")
 # Combine and deduplicate:
-timings = bind_rows(timings, timing_dodgr) |>
-  distinct(approach, version, date)
+timings = bind_rows(
+  timings,
+  readr::read_csv("timings.csv")
+) |>
+  distinct(approach, version, date, keep_all = TRUE)
 readr::write_csv(timings, "timings.csv")
 ```
